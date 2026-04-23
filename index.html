@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Home Expense Tracker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6f8;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    .app { display: flex; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 220px;
+      background: #fff;
+      border-right: 1px solid #e8eaf0;
+      padding: 1.5rem 0;
+      flex-shrink: 0;
+    }
+    .sidebar-brand {
+      font-size: 13px;
+      font-weight: 600;
+      color: #1D9E75;
+      padding: 0 1.25rem 1.5rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 1.25rem;
+      font-size: 14px;
+      color: #666;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .nav-item:hover { background: #f4f6f8; color: #1a1a2e; }
+    .nav-item.active {
+      background: #f0faf6;
+      color: #1D9E75;
+      font-weight: 600;
+      border-left: 3px solid #1D9E75;
+    }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    /* ── Main ── */
+    .main { flex: 1; padding: 2rem; overflow-y: auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Metric cards ── */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 1.5rem;
+    }
+    .metric-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem;
+      border: 1px solid #e8eaf0;
+    }
+    .metric-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #999;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .metric-value { font-size: 26px; font-weight: 600; color: #1a1a2e; }
+    .metric-sub { font-size: 12px; color: #999; margin-top: 4px; }
+
+    /* ── Card ── */
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      border: 1px solid #e8eaf0;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 1rem;
+    }
+
+    /* ── Form ── */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 12px; font-weight: 600; color: #555; }
+    input, select, textarea {
+      padding: 9px 12px;
+      font-size: 14px;
+      border: 1px solid #dde1ea;
+      border-radius: 8px;
+      color: #1a1a2e;
+      background: #fff;
+      outline: none;
+      transition: border 0.15s;
+      width: 100%;
+      font-family: inherit;
+    }
+    input:focus, select:focus { border-color: #1D9E75; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 9px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      border: none;
+    }
+    .btn-primary { background: #1D9E75; color: #fff; }
+    .btn-primary:hover { background: #178c67; }
+    .btn-danger {
+      background: transparent;
+      color: #e24b4a;
+      border: 1px solid #f0b0af;
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+    .btn-danger:hover { background: #fef2f2; }
+    .btn-edit {
+      background: transparent;
+      color: #378add;
+      border: 1px solid #b5d4f4;
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+      margin-right: 4px;
+    }
+    .btn-edit:hover { background: #eff6ff; }
+
+    /* ── Table ── */
+    .expense-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .expense-table th {
+      text-align: left;
+      padding: 9px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #999;
+      border-bottom: 1px solid #e8eaf0;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .expense-table td {
+      padding: 11px 12px;
+      border-bottom: 1px solid #f0f2f5;
+      color: #1a1a2e;
+      vertical-align: middle;
+    }
+    .expense-table tr:last-child td { border-bottom: none; }
+    .expense-table tr:hover td { background: #f9fafb; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
+    .badge-Food       { background: #E1F5EE; color: #0F6E56; }
+    .badge-Transport  { background: #E6F1FB; color: #185FA5; }
+    .badge-Utilities  { background: #FAEEDA; color: #854F0B; }
+    .badge-Health     { background: #FCEBEB; color: #A32D2D; }
+    .badge-Entertainment { background: #EEEDFE; color: #534AB7; }
+    .badge-Education  { background: #EAF3DE; color: #3B6D11; }
+    .badge-Shopping   { background: #FBEAF0; color: #993556; }
+    .badge-Other      { background: #F1EFE8; color: #5F5E5A; }
+
+    /* ── Bar chart ── */
+    .bar-wrap { margin-bottom: 12px; }
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #555;
+      margin-bottom: 5px;
+    }
+    .bar-track {
+      height: 10px;
+      background: #f0f2f5;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; }
+
+    /* ── Category cards ── */
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+    }
+    .cat-card { border-radius: 12px; padding: 1rem; }
+
+    /* ── Filter row ── */
+    .filter-row { display: flex; gap: 10px; margin-bottom: 1rem; }
+    .filter-row input, .filter-row select { flex: 1; max-width: 200px; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1D9E75;
+      color: #fff;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+      z-index: 999;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: #e24b4a; }
+
+    /* ── SQL preview ── */
+    .sql-box {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #555;
+      background: #f8f9fb;
+      border-radius: 8px;
+      padding: 12px 14px;
+      line-height: 1.9;
+      border: 1px solid #e8eaf0;
+    }
+    .sql-keyword { color: #185FA5; font-weight: 600; }
+    .sql-value   { color: #1D9E75; }
+
+    /* ── Modal ── */
+    .modal-bg {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.35);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 14px;
+      padding: 1.75rem;
+      width: 340px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    }
+    .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 1rem; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 1.25rem; justify-content: flex-end; }
+    .btn-secondary {
+      background: #f0f2f5;
+      color: #555;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+    }
+
+    .empty-state { text-align: center; padding: 2rem; color: #aaa; font-size: 14px; }
+    .loading { text-align: center; padding: 2rem; color: #aaa; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-brand">🏠 Expense Tracker</div>
+    <div class="nav-item active" onclick="showPage('dashboard')">
+      <span class="nav-icon">◈</span> Dashboard
+    </div>
+    <div class="nav-item" onclick="showPage('add')">
+      <span class="nav-icon">+</span> Add Expense
+    </div>
+    <div class="nav-item" onclick="showPage('expenses')">
+      <span class="nav-icon">≡</span> All Expenses
+    </div>
+    <div class="nav-item" onclick="showPage('analytics')">
+      <span class="nav-icon">▦</span> Analytics
+    </div>
+    <div class="nav-item" onclick="showPage('categories')">
+      <span class="nav-icon">◉</span> Categories
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="metric-label">This Month</div>
+          <div class="metric-value" id="m-month">₹0</div>
+          <div class="metric-sub" id="m-month-count">0 expenses</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total Spent</div>
+          <div class="metric-value" id="m-total">₹0</div>
+          <div class="metric-sub" id="m-total-count">0 expenses</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Top Category</div>
+          <div class="metric-value" style="font-size:18px;" id="m-top-cat">—</div>
+          <div class="metric-sub" id="m-top-amt"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Expenses</div>
+        <table class="expense-table">
+          <thead>
+            <tr><th>Date</th><th>Name</th><th>Category</th><th style="text-align:right">Amount</th></tr>
+          </thead>
+          <tbody id="recent-tbody">
+            <tr><td colspan="4" class="loading">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ADD EXPENSE -->
+    <div class="page" id="page-add">
+      <div class="page-title">Add Expense</div>
+      <div class="card">
+        <div class="card-title">Expense Details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <span class="form-label">Expense Name</span>
+            <input type="text" id="inp-name" placeholder="e.g. Grocery shopping" oninput="updateSql()" />
+          </div>
+          <div class="form-group">
+            <span class="form-label">Amount (₹)</span>
+            <input type="number" id="inp-amount" placeholder="0" min="0" oninput="updateSql()" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <span class="form-label">Date</span>
+            <input type="date" id="inp-date" oninput="updateSql()" />
+          </div>
+          <div class="form-group">
+            <span class="form-label">Category</span>
+            <select id="inp-category" onchange="updateSql()">
+              <option value="1">Food</option>
+              <option value="2">Transport</option>
+              <option value="3">Utilities</option>
+              <option value="4">Health</option>
+              <option value="5">Entertainment</option>
+              <option value="6">Education</option>
+              <option value="7">Shopping</option>
+              <option value="8">Other</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="submitAddExpense()">Add Expense</button>
+      </div>
+      <div class="card">
+        <div class="card-title">SQL Query (INSERT)</div>
+        <div class="sql-box" id="sql-preview">
+          <span class="sql-keyword">INSERT INTO</span> expenses (date, name, amount, category_id)<br>
+          <span class="sql-keyword">VALUES</span> (<span class="sql-value" id="sq-date">'—'</span>, <span class="sql-value" id="sq-name">'—'</span>, <span class="sql-value" id="sq-amount">0</span>, <span class="sql-value" id="sq-cat">1</span>);
+        </div>
+      </div>
+    </div>
+
+    <!-- ALL EXPENSES -->
+    <div class="page" id="page-expenses">
+      <div class="page-title">All Expenses</div>
+      <div class="filter-row">
+        <input type="text" id="search-input" placeholder="Search by name..." oninput="filterExpenses()" />
+        <select id="filter-cat" onchange="filterExpenses()">
+          <option value="">All Categories</option>
+          <option>Food</option><option>Transport</option><option>Utilities</option>
+          <option>Health</option><option>Entertainment</option><option>Education</option>
+          <option>Shopping</option><option>Other</option>
+        </select>
+        <select id="filter-month" onchange="filterExpenses()">
+          <option value="">All Months</option>
+        </select>
+      </div>
+      <div class="card" style="padding:0;overflow:hidden;">
+        <table class="expense-table">
+          <thead>
+            <tr><th>ID</th><th>Date</th><th>Name</th><th>Category</th><th style="text-align:right">Amount</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="expenses-tbody">
+            <tr><td colspan="6" class="loading">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="page-title">Analytics</div>
+      <div class="card">
+        <div class="card-title">Category-wise Total — <code style="font-size:11px;color:#999;">GROUP BY + SUM (JOIN)</code></div>
+        <div id="cat-bars"><div class="loading">Loading...</div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Monthly Summary — <code style="font-size:11px;color:#999;">VIEW: monthly_summary</code></div>
+        <table class="expense-table">
+          <thead><tr><th>Month</th><th>No. of Expenses</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody id="monthly-tbody"><tr><td colspan="3" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div class="page" id="page-categories">
+      <div class="page-title">Category Summary</div>
+      <div class="cat-grid" id="cat-cards"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal-bg" id="edit-modal">
+  <div class="modal">
+    <h3>Update Expense Amount</h3>
+    <div class="form-group">
+      <span class="form-label">New Amount (₹)</span>
+      <input type="number" id="edit-amount" placeholder="0" min="0" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitUpdate()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const CAT_COLORS = {
+    Food:'#1D9E75', Transport:'#378ADD', Utilities:'#EF9F27',
+    Health:'#E24B4A', Entertainment:'#7F77DD', Education:'#639922',
+    Shopping:'#D4537E', Other:'#888780'
+  };
+  const CAT_BG = {
+    Food:'#E1F5EE', Transport:'#E6F1FB', Utilities:'#FAEEDA',
+    Health:'#FCEBEB', Entertainment:'#EEEDFE', Education:'#EAF3DE',
+    Shopping:'#FBEAF0', Other:'#F1EFE8'
+  };
+  const CAT_TEXT = {
+    Food:'#0F6E56', Transport:'#185FA5', Utilities:'#854F0B',
+    Health:'#A32D2D', Entertainment:'#534AB7', Education:'#3B6D11',
+    Shopping:'#993556', Other:'#5F5E5A'
+  };
+
+  let allExpenses = [];
+  let editingId = null;
+
+  function fmt(n) {
+    return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  }
+
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isError ? ' error' : '');
+    setTimeout(() => t.className = 'toast', 2800);
+  }
+
+  function showPage(name) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    const map = { dashboard: 0, add: 1, expenses: 2, analytics: 3, categories: 4 };
+    document.querySelectorAll('.nav-item')[map[name]].classList.add('active');
+    loadPageData(name);
+  }
+
+  function loadPageData(name) {
+    if (name === 'dashboard') loadDashboard();
+    if (name === 'expenses') loadExpenses();
+    if (name === 'analytics') loadAnalytics();
+    if (name === 'categories') loadCategories();
+  }
+
+  // ── Dashboard ───────────────────────────────────────────────────────
+
+  async function loadDashboard() {
+    const res = await fetch('/api/expenses');
+    allExpenses = await res.json();
+
+    const now = new Date().toISOString().slice(0, 7);
+    const thisMonth = allExpenses.filter(e => e.date.slice(0, 7) === now);
+    const total = allExpenses.reduce((s, e) => s + e.amount, 0);
+    const mTotal = thisMonth.reduce((s, e) => s + e.amount, 0);
+
+    document.getElementById('m-month').textContent = fmt(mTotal);
+    document.getElementById('m-month-count').textContent = thisMonth.length + ' expenses';
+    document.getElementById('m-total').textContent = fmt(total);
+    document.getElementById('m-total-count').textContent = allExpenses.length + ' expenses';
+
+    const catData = await fetch('/api/category-total').then(r => r.json());
+    if (catData.length) {
+      document.getElementById('m-top-cat').textContent = catData[0].category;
+      document.getElementById('m-top-amt').textContent = fmt(catData[0].total);
+    }
+
+    const recent = allExpenses.slice(0, 5);
+    const tbody = document.getElementById('recent-tbody');
+    if (!recent.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No expenses yet. Add your first!</td></tr>';
+      return;
+    }
+    tbody.innerHTML = recent.map(e => `
+      <tr>
+        <td>${e.date}</td>
+        <td>${e.name}</td>
+        <td><span class="badge badge-${e.category}">${e.category}</span></td>
+        <td style="text-align:right;font-weight:600;">${fmt(e.amount)}</td>
+      </tr>`).join('');
+  }
+
+  // ── Add Expense ─────────────────────────────────────────────────────
+
+  document.getElementById('inp-date').value = new Date().toISOString().split('T')[0];
+  updateSql();
+
+  function updateSql() {
+    const n = document.getElementById('inp-name').value || '—';
+    const a = document.getElementById('inp-amount').value || '0';
+    const d = document.getElementById('inp-date').value || '—';
+    const c = document.getElementById('inp-category').value;
+    document.getElementById('sq-name').textContent = `'${n}'`;
+    document.getElementById('sq-amount').textContent = a;
+    document.getElementById('sq-date').textContent = `'${d}'`;
+    document.getElementById('sq-cat').textContent = c;
+  }
+
+  async function submitAddExpense() {
+    const name = document.getElementById('inp-name').value.trim();
+    const amount = parseFloat(document.getElementById('inp-amount').value);
+    const date = document.getElementById('inp-date').value;
+    const category_id = parseInt(document.getElementById('inp-category').value);
+    if (!name || !amount || !date) { showToast('Please fill all fields.', true); return; }
+
+    const res = await fetch('/api/expenses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, amount, date, category_id })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('Expense added successfully!');
+      document.getElementById('inp-name').value = '';
+      document.getElementById('inp-amount').value = '';
+      updateSql();
+    }
+  }
+
+  // ── All Expenses ────────────────────────────────────────────────────
+
+  async function loadExpenses() {
+    const res = await fetch('/api/expenses');
+    allExpenses = await res.json();
+    populateMonthFilter();
+    filterExpenses();
+  }
+
+  function populateMonthFilter() {
+    const months = [...new Set(allExpenses.map(e => e.date.slice(0, 7)))].sort().reverse();
+    const sel = document.getElementById('filter-month');
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">All Months</option>' +
+      months.map(m => `<option ${m === cur ? 'selected' : ''}>${m}</option>`).join('');
+  }
+
+  function filterExpenses() {
+    const search = document.getElementById('search-input').value.toLowerCase();
+    const cat = document.getElementById('filter-cat').value;
+    const month = document.getElementById('filter-month').value;
+    const filtered = allExpenses.filter(e =>
+      (!search || e.name.toLowerCase().includes(search)) &&
+      (!cat || e.category === cat) &&
+      (!month || e.date.slice(0, 7) === month)
+    );
+    const tbody = document.getElementById('expenses-tbody');
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No expenses found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = filtered.map(e => `
+      <tr>
+        <td style="color:#aaa;font-size:12px;">#${e.id}</td>
+        <td>${e.date}</td>
+        <td>${e.name}</td>
+        <td><span class="badge badge-${e.category}">${e.category}</span></td>
+        <td style="text-align:right;font-weight:600;">${fmt(e.amount)}</td>
+        <td>
+          <button class="btn-edit" onclick="openEdit(${e.id}, ${e.amount})">Edit</button>
+          <button class="btn-danger" onclick="deleteExpense(${e.id})">Delete</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function deleteExpense(id) {
+    if (!confirm('Delete this expense?')) return;
+    const res = await fetch('/api/expenses/' + id, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) { showToast('Expense deleted.'); loadExpenses(); }
+  }
+
+  function openEdit(id, amount) {
+    editingId = id;
+    document.getElementById('edit-amount').value = amount;
+    document.getElementById('edit-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('edit-modal').classList.remove('open');
+    editingId = null;
+  }
+
+  async function submitUpdate() {
+    const amount = parseFloat(document.getElementById('edit-amount').value);
+    if (!amount) { showToast('Enter a valid amount.', true); return; }
+    const res = await fetch('/api/expenses/' + editingId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount })
+    });
+    const data = await res.json();
+    if (data.success) { showToast('Expense updated!'); closeModal(); loadExpenses(); }
+  }
+
+  // ── Analytics ───────────────────────────────────────────────────────
+
+  async function loadAnalytics() {
+    const catData = await fetch('/api/category-total').then(r => r.json());
+    const maxVal = catData.length ? Math.max(...catData.map(c => c.total)) : 1;
+    const barsEl = document.getElementById('cat-bars');
+    if (!catData.length) { barsEl.innerHTML = '<div class="empty-state">No data yet.</div>'; }
+    else {
+      barsEl.innerHTML = catData.map(c => `
+        <div class="bar-wrap">
+          <div class="bar-label"><span>${c.category}</span><span>${fmt(c.total)}</span></div>
+          <div class="bar-track">
+            <div class="bar-fill" style="width:${Math.round(c.total / maxVal * 100)}%;background:${CAT_COLORS[c.category]};"></div>
+          </div>
+        </div>`).join('');
+    }
+
+    const monthData = await fetch('/api/monthly-summary').then(r => r.json());
+    const mtbody = document.getElementById('monthly-tbody');
+    if (!monthData.length) { mtbody.innerHTML = '<tr><td colspan="3" class="empty-state">No data yet.</td></tr>'; return; }
+    mtbody.innerHTML = monthData.map(m => `
+      <tr>
+        <td>${m.month}</td>
+        <td>${m.total_expenses} expense${m.total_expenses != 1 ? 's' : ''}</td>
+        <td style="text-align:right;font-weight:600;">${fmt(m.total_amount)}</td>
+      </tr>`).join('');
+  }
+
+  // ── Categories ──────────────────────────────────────────────────────
+
+  async function loadCategories() {
+    const catData = await fetch('/api/category-total').then(r => r.json());
+    const allCats = ['Food','Transport','Utilities','Health','Entertainment','Education','Shopping','Other'];
+    const catMap = {};
+    catData.forEach(c => catMap[c.category] = c);
+    document.getElementById('cat-cards').innerHTML = allCats.map(cat => {
+      const d = catMap[cat] || { total: 0, count: 0 };
+      return `
+        <div class="cat-card" style="background:${CAT_BG[cat]};">
+          <div style="font-size:12px;font-weight:600;color:${CAT_TEXT[cat]};margin-bottom:8px;">${cat}</div>
+          <div style="font-size:22px;font-weight:700;color:${CAT_TEXT[cat]};">${fmt(d.total)}</div>
+          <div style="font-size:12px;color:${CAT_TEXT[cat]};opacity:0.75;margin-top:4px;">${d.count} expense${d.count != 1 ? 's' : ''}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // Initial load
+  loadDashboard();
+</script>
+
+</body>
+</html>
